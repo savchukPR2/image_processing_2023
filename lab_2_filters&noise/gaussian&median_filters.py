@@ -49,75 +49,67 @@ def calculate_uiqi(image1, image2):
     return uiqi
 
 
-def process_image(image_path, filter_type, filter_param):
-    # Загрузка цветного изображения
-    original_image = cv2.imread(image_path, cv2.IMREAD_COLOR)
-
-    if filter_type == 'median':
-        # Применение медианного фильтра к каждому цветовому каналу
-        filtered_image = apply_median_filter(original_image, filter_param)
-        filter_name = f'Median Filter (Window Size {filter_param})'
-    elif filter_type == 'gaussian':
-        # Создание Gaussian kernel
-        sigma = filter_param
-        kernel_size = int(6 * sigma + 1)
-        gaussian_kernel_matrix = gaussian_kernel(kernel_size, sigma)
-
-        # Применение Gaussian фильтра
-        filtered_image = apply_gaussian_filter(original_image, gaussian_kernel_matrix)
-        filter_name = f'Gaussian Filter (Sigma {filter_param})'
-    else:
-        raise ValueError("Unknown filter type")
-
-    # Отображение оригинального и фильтрованного изображений
-    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
-    axes[0].imshow(cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB))
-    axes[0].set_title('Original Image')
-    axes[0].axis('off')
-    axes[1].imshow(cv2.cvtColor(filtered_image, cv2.COLOR_BGR2RGB))
-    axes[1].set_title(filter_name)
-    axes[1].axis('off')
-
-    # Вычисление MSE и UIQI
-    m = mse(original_image, filtered_image)
-    s = calculate_uiqi(original_image, filtered_image)
-
-    # Вывод результатов на графический интерфейс
-    result_text = f'MSE: {m:.2f}\nUIQI: {s:.2f}'
-
-    # Создание нового окна Tkinter
-    root = Tk()
-    root.title("Image Processing Results")
-
-    # Встраивание графика в Tkinter
-    canvas = FigureCanvasTkAgg(fig, master=root)
-    canvas.get_tk_widget().pack()
-
-    # Добавление метки с результатами
-    result_label = Label(root, text=result_text, font=("Helvetica", 12))
-    result_label.pack()
-
-    # Показать только график, который уже встроен в Tkinter
-    canvas.draw()
-
-    # Запуск основного цикла Tkinter
-
+def load_noisy_image(image_path):
+    # Загрузка цветного изображения с шумом
+    noisy_image = cv2.imread(image_path, cv2.IMREAD_COLOR)
+    return noisy_image
 
 def main():
     # Выбор файла изображения
     root = Tk()
     root.withdraw()
-    file_path = filedialog.askopenfilename(title="Select Image", filetypes=[("Image files", "*.jpg;*.jpeg")])
+    original_file_path = filedialog.askopenfilename(title="Select Original Image", filetypes=[("Image files", "*.jpg;*.jpeg")])
+    noisy_file_path = filedialog.askopenfilename(title="Select Noisy Image", filetypes=[("Image files", "*.jpg;*.jpeg")])
 
-    if file_path:
+    if original_file_path and noisy_file_path:
+        # Загрузка оригинального изображения и изображения с шумом
+        original_image = cv2.imread(original_file_path, cv2.IMREAD_COLOR)
+        noisy_image = load_noisy_image(noisy_file_path)
+
         # Задание типа и параметра фильтра
         filter_type = input("Enter filter type ('median' or 'gaussian'): ")
         filter_param = int(input("Enter filter parameter: "))
 
-        # Обработка изображения
-        process_image(file_path, filter_type, filter_param)
-    root.mainloop()
+        # Применение фильтра к изображению с шумом
+        if filter_type == 'median':
+            filtered_image = apply_median_filter(noisy_image, filter_param)
+        elif filter_type == 'gaussian':
+            sigma = filter_param
+            kernel_size = int(6 * sigma + 1)
+            gaussian_kernel_matrix = gaussian_kernel(kernel_size, sigma)
+            filtered_image = apply_gaussian_filter(noisy_image, gaussian_kernel_matrix)
+        else:
+            raise ValueError("Unknown filter type")
 
+        # Вычисление MSE и UIQI между оригинальным и фильтрованным изображением
+        mse_value = mse(original_image, filtered_image)
+        uiqi_value = calculate_uiqi(original_image, filtered_image)
+
+        # Отображение результатов
+        fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+        axes[0].imshow(cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB))
+        axes[0].set_title('Original Image')
+        axes[0].axis('off')
+        axes[1].imshow(cv2.cvtColor(noisy_image, cv2.COLOR_BGR2RGB))
+        axes[1].set_title('Noisy Image')
+        axes[1].axis('off')
+        axes[2].imshow(cv2.cvtColor(filtered_image, cv2.COLOR_BGR2RGB))
+        axes[2].set_title(f'Filtered Image ({filter_type} Filter)')
+        axes[2].axis('off')
+
+        result_text = f'MSE: {mse_value:.2f}\nUIQI: {uiqi_value:.2f}'
+
+        root = Tk()
+        root.title("Image Processing Results")
+
+        canvas = FigureCanvasTkAgg(fig, master=root)
+        canvas.get_tk_widget().pack()
+
+        result_label = Label(root, text=result_text, font=("Helvetica", 12))
+        result_label.pack()
+
+        canvas.draw()
+        root.mainloop()
 
 if __name__ == "__main__":
     main()
