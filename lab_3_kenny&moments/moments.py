@@ -1,51 +1,58 @@
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
-from tkinter import Tk, filedialog
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from PIL import Image, ImageTk
+import tkinter as tk
+from tkinter import filedialog
 
-def calculate_moments_and_histogram(image_path):
-    # Загрузка изображения в оттенках серого
-    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 
-    # Вычисление моментов Ху
-    moments = cv2.moments(image)
+def calculate_moments(image_path):
+    image = Image.open(image_path).convert("L")  # Convert the image to grayscale
+    width, height = image.size
+    moments = []
 
-    # Расчет гистограммы
-    hist = cv2.calcHist([image], [0], None, [256], [0, 256])
+    for x in range(width):
+        for y in range(height):
+            pixel_value = image.getpixel((x, y))
+            # Assuming white pixels have intensity 255 in a grayscale image
+            if pixel_value == 255:
+                moment = {
+                    "Общая масса": 1,
+                    "Момент по X": x,
+                    "Момент по Y": y,
+                    "Второй момент по X": x**2,
+                    "Второй момент по XY": x*y,
+                    "Второй момент по Y": y**2,
+                    "Третий момент по X": x**3,
+                    "Третий момент по XY": x**2*y,
+                    "Третий момент по Y": x*y**2,
+                    "Третий момент по Y": y**3,
+                }
+                moments.append(moment)
 
-    # Отображение изображения и гистограммы
-    plot_image_and_histogram(image, hist)
+    return moments
 
-def plot_image_and_histogram(image, hist):
-    # Создание фигуры и осей с явным указанием размеров
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
 
-    # Отображение изображения
-    ax1.imshow(image, cmap='gray')
-    ax1.set_title('Image')
-
-    # Отображение гистограммы
-    ax2.plot(hist, color='black')
-
-    # Установка максимального значения по оси Y
-    ax2.set_ylim(0, 4000)
-
-    ax2.set_title('Histogram')
-
-    # Уменьшение размера гистограммы по вертикальной оси
-    plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
-
-    # Отображение окна
-    plt.show()
-
-def select_image():
-    Tk().withdraw()  # чтобы окно выбора файла не отображалось
-    file_path = filedialog.askopenfilename(title='Select an image', filetypes=[('Image files', '*.png;*.jpg;*.jpeg;*.bmp;*.gif')])
-
+def browse_image():
+    file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png;*.jpg;*.jpeg;*.gif;*.bmp")])
     if file_path:
-        calculate_moments_and_histogram(file_path)
+        moments = calculate_moments(file_path)
+        display_moments(moments)
+
+
+def display_moments(moments):
+    # Clear the console before displaying moments
+    print("\033c")
+
+    for i, moment in enumerate(moments, 1):
+        print(f"Object {i} moments:")
+        for key, value in moment.items():
+            print(f"{key}: {value}")
+        print()
+
 
 if __name__ == "__main__":
-    # Запуск выбора изображения
-    select_image()
+    root = tk.Tk()
+    root.title("Image Moments Calculator")
+
+    browse_button = tk.Button(root, text="Browse Image", command=browse_image)
+    browse_button.pack(pady=10)
+
+    root.mainloop()
