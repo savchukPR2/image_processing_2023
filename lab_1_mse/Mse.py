@@ -73,7 +73,7 @@ def compare_images():
         image2 = cv2.resize(image2, target_size)
 
         # Define block size for block-wise calculations
-        block_size = 4  # You can adjust this value based on your preference
+        block_size = 1  # You can adjust this value based on your preference
 
         # Compare images block-wise
         mse_value = block_mse(image1, image2, block_size)
